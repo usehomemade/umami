@@ -1,0 +1,51 @@
+{
+  "$schema": "https://homemade.dev/schemas/latest/config.json",
+  "setup": [],
+  "warmup": [
+    "npx --yes corepack pnpm@12.3.4 install --frozen-lockfile",
+    "npx --yes corepack pnpm@12.3.4 run build:db",
+    "npx --yes corepack pnpm@12.3.4 run build:tracker:script",
+    "npx --yes corepack pnpm@12.3.4 run build:recorder",
+    "npx --yes corepack pnpm@12.3.4 run openapi:generate",
+    "npx --yes corepack pnpm@12.3.4 --filter './packages/**' -r build",
+    "[ -s geo/GeoLite2-City.mmdb ] || npx --yes corepack pnpm@12.3.4 run build:geo"
+  ],
+  "install": [
+    "mkdir -p .git/info && (grep -qxF '/AGENTS.md' .git/info/exclude 2>/dev/null || printf '\\n/AGENTS.md\\n' >> .git/info/exclude)",
+    "npx --yes corepack pnpm@12.3.4 install --frozen-lockfile",
+    "npx --yes corepack pnpm@12.3.4 run build:db",
+    "npx --yes corepack pnpm@12.3.4 run build:tracker:script",
+    "npx --yes corepack pnpm@12.3.4 run build:recorder",
+    "npx --yes corepack pnpm@12.3.4 run openapi:generate",
+    "npx --yes corepack pnpm@12.3.4 --filter './packages/**' -r build",
+    "[ -s geo/GeoLite2-City.mmdb ] || npx --yes corepack pnpm@12.3.4 run build:geo"
+  ],
+  "services": {
+    "db": {
+      "cmd": "docker compose -f docker-compose.yml -f .homemade/compose.yaml up db",
+      "port": 5432,
+      "displayName": "PostgreSQL",
+      "order": 0
+    },
+    "web": {
+      "cmd": "sh .homemade/dev.sh",
+      "port": 3000,
+      "url": true,
+      "healthcheck": {
+        "path": "/"
+      },
+      "displayName": "Umami (dev)",
+      "order": 1
+    }
+  },
+  "env_schema": [
+    {
+      "key": "DATABASE_URL",
+      "warmup": true
+    },
+    "APP_SECRET",
+    "TWO_FACTOR_ENCRYPTION_KEY",
+    "NEXT_TELEMETRY_DISABLED",
+    "DISABLE_TELEMETRY"
+  ]
+}
