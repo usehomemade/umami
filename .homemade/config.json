@@ -1,0 +1,38 @@
+{
+  "$schema": "https://homemade.dev/schemas/latest/config.json",
+  "warmup": [
+    "npx --yes corepack pnpm@12.3.4 install --frozen-lockfile",
+    "npx --yes corepack pnpm@12.3.4 run build:geo"
+  ],
+  "install": [
+    "npx --yes corepack pnpm@12.3.4 install --frozen-lockfile",
+    "npx --yes corepack pnpm@12.3.4 run build:db",
+    "npx --yes corepack pnpm@12.3.4 run build:tracker:script",
+    "npx --yes corepack pnpm@12.3.4 run build:recorder",
+    "npx --yes corepack pnpm@12.3.4 --filter './packages/**' -r build",
+    "test -s geo/GeoLite2-City.mmdb || npx --yes corepack pnpm@12.3.4 run build:geo"
+  ],
+  "services": {
+    "db": {
+      "cmd": "docker compose -f docker-compose.yml -f .homemade/compose.override.yml up --no-deps db",
+      "port": 5432,
+      "displayName": "PostgreSQL"
+    },
+    "web": {
+      "cmd": "timeout 120 sh -c 'until docker compose -f docker-compose.yml -f .homemade/compose.override.yml exec -T db pg_isready -h 127.0.0.1 -U umami -d umami -q; do sleep 1; done' && npx --yes corepack pnpm@12.3.4 run check:db && exec npx --yes corepack pnpm@12.3.4 run dev --hostname 0.0.0.0 --port \"$PORT\" < /dev/null",
+      "port": 3000,
+      "url": true,
+      "healthcheck": {
+        "path": "/api/heartbeat"
+      },
+      "displayName": "Umami (development)"
+    }
+  },
+  "env_schema": [
+    "DATABASE_URL",
+    "APP_SECRET",
+    "TWO_FACTOR_ENCRYPTION_KEY",
+    "DISABLE_TELEMETRY",
+    "NEXT_TELEMETRY_DISABLED"
+  ]
+}
